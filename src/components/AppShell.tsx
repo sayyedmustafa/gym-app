@@ -34,7 +34,7 @@ export function AppShell() {
   }
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen flex-col md:flex-row">
       {/* Sidebar */}
       <aside className="hidden w-64 flex-col border-r bg-card md:flex">
         {/* Gym switcher */}
@@ -102,7 +102,7 @@ export function AppShell() {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto pb-16 md:pb-0">
         {/* Mobile header */}
         <header className="flex items-center justify-between border-b p-4 md:hidden">
           <div className="flex items-center gap-2">
@@ -117,6 +117,29 @@ export function AppShell() {
           <Outlet />
         </div>
       </main>
+
+      {/* Mobile bottom navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around border-t bg-card py-2 md:hidden">
+        {navItems
+          .filter((item) => !item.ownerOnly || isOwner())
+          .map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              className={({ isActive }) =>
+                `flex flex-col items-center gap-0.5 px-2 py-1 text-xs transition-colors ${
+                  isActive
+                    ? 'text-primary'
+                    : 'text-muted-foreground'
+                }`
+              }
+            >
+              <item.icon className="h-5 w-5" />
+              <span>{item.label}</span>
+            </NavLink>
+          ))}
+      </nav>
     </div>
   )
 }
