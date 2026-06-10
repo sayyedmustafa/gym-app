@@ -1,35 +1,17 @@
 import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { Search, UserPlus, Phone, MessageCircle, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { StatusBadge } from '@/components/StatusBadge'
+import { AddMemberDialog } from '@/components/AddMemberDialog'
 import { useAuthStore } from '@/stores/auth'
+import { supabase } from '@/lib/supabase'
 import { openWhatsApp, buildReminderMessage } from '@/lib/whatsapp'
-import type { MemberWithStatus, MemberStatus } from '@/types/database'
-
-// Placeholder data
-const mockMembers: MemberWithStatus[] = [
-  {
-    id: '1', gym_id: 'g1', name: 'Rahul Sharma', phone: '+919876543210',
-    photo_url: null, plan_id: 'p1', start_date: '2025-05-01', end_date: '2025-06-01',
-    notes: null, created_by: 'u1', created_at: '2025-05-01T00:00:00Z',
-    status: 'expiring_soon', plan: { id: 'p1', gym_id: 'g1', name: 'Monthly', price: 1500, duration_days: 30, description: null, allows_freeze: false, max_freeze_days: 0, is_active: true, created_at: '' },
-  },
-  {
-    id: '2', gym_id: 'g1', name: 'Priya Patel', phone: '+919876543211',
-    photo_url: null, plan_id: 'p2', start_date: '2025-03-01', end_date: '2025-09-01',
-    notes: null, created_by: 'u1', created_at: '2025-03-01T00:00:00Z',
-    status: 'active', plan: { id: 'p2', gym_id: 'g1', name: 'Quarterly', price: 4000, duration_days: 90, description: null, allows_freeze: true, max_freeze_days: 7, is_active: true, created_at: '' },
-  },
-  {
-    id: '3', gym_id: 'g1', name: 'Amit Kumar', phone: '+919876543212',
-    photo_url: null, plan_id: 'p1', start_date: '2025-01-01', end_date: '2025-01-31',
-    notes: null, created_by: 'u1', created_at: '2025-01-01T00:00:00Z',
-    status: 'expired', plan: { id: 'p1', gym_id: 'g1', name: 'Monthly', price: 1500, duration_days: 30, description: null, allows_freeze: false, max_freeze_days: 0, is_active: true, created_at: '' },
-  },
-]
+import { differenceInDays } from 'date-fns'
+import type { MemberWithStatus, MemberStatus, Plan } from '@/types/database'
 
 const tabs: { label: string; value: MemberStatus | 'all' }[] = [
   { label: 'All', value: 'all' },
@@ -39,18 +21,55 @@ const tabs: { label: string; value: MemberStatus | 'all' }[] = [
   { label: 'Frozen', value: 'frozen' },
 ]
 
+function computeStatus(endDate: string): MemberStatus {
+  const daysLeft = differenceInDays(new Date(endDate), new Date())
+  if (daysLeft < 0) return 'expired'
+  if (daysLeft <= 7) return 'expiring_soon'
+  return 'active'
+}
+
 export function MembersPage() {
   const [activeTab, setActiveTab] = useState<MemberStatus | 'all'>('all')
   const [search, setSearch] = useState('')
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const currentGymId = useAuthStore((s) => s.currentGymId)
   const currentGym = useAuthStore((s) => s.currentGym)
 
-  const filtered = mockMembers.filter((m) => {
+  const { data: plans = [] } = useQuery<Plan[]>({
+    queryKey: ['plans', currentGymId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('plans')
+        .select('*')
+        .eq('gym_id', currentGymId!)
+      return (data ?? []) as Plan[]
+    },
+    enabled: !!currentGymId,
+  })
+
+  const { data: members = [], refetch: refetchMembers } = useQuery<MemberWithStatus[]>({
+    queryKey: ['members', currentGymId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('members')
+        .select('*, plan:plans(*)')
+        .eq('gym_id', currentGymId!)
+        .order('created_at', { ascending: false })
+      return (data ?? []).map((m: any) => ({
+        ...m,
+        status: computeStatus(m.end_date),
+      })) as MemberWithStatus[]
+    },
+    enabled: !!currentGymId,
+  })
+
+  const filtered = members.filter((m) => {
     if (activeTab !== 'all' && m.status !== activeTab) return false
     if (search && !m.name.toLowerCase().includes(search.toLowerCase())) return false
     return true
   })
 
-  const expiringMembers = mockMembers.filter((m) => m.status === 'expiring_soon' || m.status === 'expired')
+  const expiringMembers = members.filter((m) => m.status === 'expiring_soon' || m.status === 'expired')
 
   function handleBulkWhatsApp() {
     const gymName = currentGym()?.name ?? 'our gym'
@@ -73,7 +92,7 @@ export function MembersPage() {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold">Members</h1>
-          <p className="text-muted-foreground">{mockMembers.length} total members</p>
+          <p className="text-muted-foreground">{members.length} total members</p>
         </div>
         <div className="flex gap-2">
           {expiringMembers.length > 0 && (
@@ -82,7 +101,7 @@ export function MembersPage() {
               Remind All ({expiringMembers.length})
             </Button>
           )}
-          <Button className="gap-2">
+          <Button className="gap-2" onClick={() => setDialogOpen(true)}>
             <UserPlus className="h-4 w-4" />
             Add Member
           </Button>
@@ -166,6 +185,13 @@ export function MembersPage() {
           ))
         )}
       </div>
+
+      <AddMemberDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        plans={plans}
+        onSuccess={() => refetchMembers()}
+      />
     </div>
   )
 }
