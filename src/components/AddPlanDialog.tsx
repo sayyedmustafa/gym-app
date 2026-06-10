@@ -20,6 +20,7 @@ const planSchema = z.object({
 })
 
 type PlanFormData = z.infer<typeof planSchema>
+type PlanFormInput = z.input<typeof planSchema>
 
 interface AddPlanDialogProps {
   open: boolean
@@ -37,7 +38,7 @@ export function AddPlanDialog({ open, onClose, onSuccess }: AddPlanDialogProps) 
     reset,
     watch,
     formState: { errors },
-  } = useForm<PlanFormData>({
+  } = useForm<PlanFormInput, unknown, PlanFormData>({
     resolver: zodResolver(planSchema),
     defaultValues: {
       allows_freeze: false,
