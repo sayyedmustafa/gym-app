@@ -2,7 +2,7 @@ import { Navigate, Outlet } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth'
 
 // Set to false once Supabase is connected
-const DEV_BYPASS = true
+const DEV_BYPASS = false
 
 export function RequireAuth() {
   const session = useAuthStore((s) => s.session)
