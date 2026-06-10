@@ -1,4 +1,4 @@
-# GymManager
+# Gym app
 
 A multi-tenant gym management web app for owners and staff to manage members, plans, payments, and WhatsApp reminders.
 
