@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Dumbbell, UserPlus } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -20,7 +20,13 @@ export function OnboardingPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const { setGyms, setCurrentGymId } = useAuthStore()
+  const { setGyms, setCurrentGymId, gyms, initialized } = useAuthStore()
+
+  useEffect(() => {
+    if (initialized && gyms.length > 0) {
+      navigate('/app', { replace: true })
+    }
+  }, [initialized, gyms, navigate])
 
   async function handleCreateGym() {
     if (!gymName.trim()) return setError('Enter a gym name')

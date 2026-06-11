@@ -1,9 +1,26 @@
+import { useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuthStore } from '@/stores/auth'
 import { Dumbbell } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 export function LoginPage() {
+  const navigate = useNavigate()
+  const session = useAuthStore((s) => s.session)
+  const gyms = useAuthStore((s) => s.gyms)
+  const initialized = useAuthStore((s) => s.initialized)
+
+  useEffect(() => {
+    if (initialized && session) {
+      if (gyms.length > 0) {
+        navigate('/app', { replace: true })
+      } else {
+        navigate('/onboarding', { replace: true })
+      }
+    }
+  }, [initialized, session, gyms, navigate])
   async function handleGoogleSignIn() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',

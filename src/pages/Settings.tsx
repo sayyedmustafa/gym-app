@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth'
 import { supabase } from '@/lib/supabase'
@@ -15,6 +15,62 @@ export function SettingsPage() {
   const [confirmLeave, setConfirmLeave] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [loading, setLoading] = useState(false)
+
+  const [gymName, setGymName] = useState(gym?.name ?? '')
+  const [gymAddress, setGymAddress] = useState(gym?.address ?? '')
+  const [gymPhone, setGymPhone] = useState(gym?.phone ?? '')
+  const [gymEmail, setGymEmail] = useState(gym?.email ?? '')
+  const [savingGym, setSavingGym] = useState(false)
+
+  useEffect(() => {
+    if (gym) {
+      setGymName(gym.name)
+      setGymAddress(gym.address ?? '')
+      setGymPhone(gym.phone ?? '')
+      setGymEmail(gym.email ?? '')
+    }
+  }, [gym])
+
+  async function handleSaveGymDetails() {
+    if (!currentGymId) return
+    if (!gymName.trim()) {
+      toast.error('Gym name is required')
+      return
+    }
+
+    setSavingGym(true)
+    const { error } = await supabase
+      .from('gyms')
+      .update({
+        name: gymName.trim(),
+        address: gymAddress.trim() || null,
+        phone: gymPhone.trim() || null,
+        email: gymEmail.trim() || null,
+      })
+      .eq('id', currentGymId)
+
+    setSavingGym(false)
+
+    if (error) {
+      toast.error('Failed to update gym details', { description: error.message })
+      return
+    }
+
+    toast.success('Gym details updated successfully')
+    setGyms(
+      gyms.map((g) =>
+        g.id === currentGymId
+          ? {
+              ...g,
+              name: gymName.trim(),
+              address: gymAddress.trim() || null,
+              phone: gymPhone.trim() || null,
+              email: gymEmail.trim() || null,
+            }
+          : g
+      )
+    )
+  }
 
   async function handleLeaveGym() {
     if (!currentGymId || !session) return
@@ -71,14 +127,49 @@ export function SettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Gym Details</CardTitle>
-            <CardDescription>Update your gym's name and information</CardDescription>
+            <CardDescription>Update your gym's name and contact details</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Gym Name</label>
-              <Input defaultValue={gym?.name ?? ''} placeholder="Gym name" />
+              <Input
+                value={gymName}
+                onChange={(e) => setGymName(e.target.value)}
+                placeholder="Gym name"
+                disabled={savingGym}
+              />
             </div>
-            <Button>Save Changes</Button>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Phone Number</label>
+              <Input
+                value={gymPhone}
+                onChange={(e) => setGymPhone(e.target.value)}
+                placeholder="e.g. +1 (555) 000-0000"
+                disabled={savingGym}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Email Address</label>
+              <Input
+                type="email"
+                value={gymEmail}
+                onChange={(e) => setGymEmail(e.target.value)}
+                placeholder="e.g. contact@gym.com"
+                disabled={savingGym}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Address</label>
+              <Input
+                value={gymAddress}
+                onChange={(e) => setGymAddress(e.target.value)}
+                placeholder="e.g. 123 Main St, City, Country"
+                disabled={savingGym}
+              />
+            </div>
+            <Button onClick={handleSaveGymDetails} disabled={savingGym}>
+              {savingGym ? 'Saving...' : 'Save Changes'}
+            </Button>
           </CardContent>
         </Card>
       )}

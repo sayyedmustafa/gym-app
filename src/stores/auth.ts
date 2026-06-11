@@ -11,6 +11,7 @@ interface AuthState {
   profile: Profile | null
   gyms: GymWithRole[]
   currentGymId: string | null
+  initialized: boolean
 
   // Derived
   currentGym: () => GymWithRole | null
@@ -22,6 +23,7 @@ interface AuthState {
   setProfile: (profile: Profile | null) => void
   setGyms: (gyms: GymWithRole[]) => void
   setCurrentGymId: (id: string) => void
+  setInitialized: (initialized: boolean) => void
   reset: () => void
 }
 
@@ -32,6 +34,7 @@ export const useAuthStore = create<AuthState>()(
       profile: null,
       gyms: [],
       currentGymId: null,
+      initialized: false,
 
       currentGym: () => {
         const { gyms, currentGymId } = get()
@@ -58,12 +61,14 @@ export const useAuthStore = create<AuthState>()(
         })
       },
       setCurrentGymId: (id) => set({ currentGymId: id }),
+      setInitialized: (initialized) => set({ initialized }),
       reset: () =>
         set({
           session: null,
           profile: null,
           gyms: [],
           currentGymId: null,
+          initialized: false,
         }),
     }),
     {

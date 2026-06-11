@@ -17,6 +17,10 @@ export interface Profile {
 export interface Gym {
   id: string
   name: string
+  address?: string | null
+  phone?: string | null
+  email?: string | null
+  logo_url?: string | null
   created_at: string
 }
 
