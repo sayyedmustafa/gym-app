@@ -16,30 +16,40 @@ const queryClient = new QueryClient({
 })
 
 function AuthInitializer() {
-  const { setSession, setProfile, setGyms, reset } = useAuthStore()
+  const { setSession, setProfile, setGyms, setInitialized, reset } = useAuthStore()
 
   useEffect(() => {
+    let isMounted = true
+
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!isMounted) return
       if (session) {
         setSession(session as any)
-        loadUserData(session.user.id)
+        await loadUserData(session.user.id)
+      } else {
+        setInitialized(true)
       }
     })
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
+        if (!isMounted) return
         if (session) {
           setSession(session as any)
-          loadUserData(session.user.id)
+          await loadUserData(session.user.id)
         } else {
           reset()
+          setInitialized(true)
         }
       }
     )
 
-    return () => subscription.unsubscribe()
+    return () => {
+      isMounted = false
+      subscription.unsubscribe()
+    }
   }, [])
 
   async function loadUserData(userId: string) {
@@ -65,6 +75,8 @@ function AuthInitializer() {
       }))
       setGyms(gyms)
     }
+
+    setInitialized(true)
   }
 
   return null

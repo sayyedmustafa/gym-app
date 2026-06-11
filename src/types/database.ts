@@ -17,6 +17,10 @@ export interface Profile {
 export interface Gym {
   id: string
   name: string
+  address?: string | null
+  phone?: string | null
+  email?: string | null
+  logo_url?: string | null
   created_at: string
 }
 
@@ -66,6 +70,9 @@ export interface Member {
   notes: string | null
   created_by: string
   created_at: string
+  discount_amount?: number
+  paid_amount?: number
+  balance_amount?: number
 }
 
 export interface MemberWithStatus extends Member {
