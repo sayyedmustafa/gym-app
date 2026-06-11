@@ -40,7 +40,11 @@ export function AppShell() {
         {/* Gym switcher */}
         <div className="border-b p-4">
           <div className="flex items-center gap-2">
-            <Dumbbell className="h-5 w-5 text-primary" />
+            {currentGym?.logo_url ? (
+              <img src={currentGym.logo_url} alt="Logo" className="h-5 w-5 rounded object-cover" />
+            ) : (
+              <Dumbbell className="h-5 w-5 text-primary" />
+            )}
             {gyms.length <= 1 ? (
               <span className="font-semibold truncate">{currentGym?.name ?? 'My Gym'}</span>
             ) : (
@@ -106,7 +110,11 @@ export function AppShell() {
         {/* Mobile header */}
         <header className="flex items-center justify-between border-b p-4 md:hidden">
           <div className="flex items-center gap-2">
-            <Dumbbell className="h-5 w-5 text-primary" />
+            {currentGym?.logo_url ? (
+              <img src={currentGym.logo_url} alt="Logo" className="h-5 w-5 rounded object-cover" />
+            ) : (
+              <Dumbbell className="h-5 w-5 text-primary" />
+            )}
             <span className="font-semibold">{currentGym?.name ?? 'My Gym'}</span>
           </div>
           <Button variant="ghost" size="icon" onClick={handleSignOut}>
