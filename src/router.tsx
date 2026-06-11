@@ -43,4 +43,6 @@ export const router = createBrowserRouter([
     path: '*',
     element: <LoginPage />,
   },
-])
+], {
+  basename: '/gym-app',
+})

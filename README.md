@@ -25,7 +25,7 @@ A multi-tenant gym management web app for owners and staff to manage members, pl
 | State | Zustand (auth/gym), TanStack Query (server state) |
 | Forms | React Hook Form + Zod validation |
 | Backend | Supabase (Postgres + Auth + Storage + RLS) |
-| Hosting | Vercel (frontend), Supabase (backend) |
+| Hosting | GitHub Pages (frontend), Supabase (backend) |
 
 ## Getting Started
 
@@ -113,13 +113,31 @@ npm run lint     # ESLint
 
 ## Deployment
 
-1. Push to GitHub
-2. Import repo on [Vercel](https://vercel.com)
-3. Set environment variables (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`)
-4. Deploy
-5. Add the Vercel URL to:
-   - Supabase Auth → Site URL & Redirect URLs
-   - Google OAuth → Authorized redirect URIs
+This app is configured to deploy to **GitHub Pages** using GitHub Actions (configured in `.github/workflows/deploy.yml`).
+
+### Setup Instructions:
+
+1. **Supabase Auth Configuration**:
+   - In your Supabase Dashboard, go to **Authentication** -> **URL Configuration**.
+   - Set the **Site URL** to: `https://<your-github-username>.github.io/gym-app/`
+   - Add these URLs to **Redirect URLs**:
+     - `https://<your-github-username>.github.io/gym-app/onboarding`
+     - `http://localhost:5173/gym-app/onboarding` (for local development)
+
+2. **Google Cloud Console Configuration**:
+   - In the Google Cloud Console, ensure that the callback URL from Supabase is listed under **Authorized redirect URIs** in your OAuth 2.0 Client IDs credentials.
+
+3. **Repository Actions Secrets**:
+   - Push your code to your GitHub repository named `gym-app`.
+   - Go to your repository **Settings** -> **Secrets and variables** -> **Actions**.
+   - Create two repository secrets:
+     - `VITE_SUPABASE_URL`: Your Supabase project URL
+     - `VITE_SUPABASE_ANON_KEY`: Your Supabase anon public key
+
+4. **GitHub Pages Activation**:
+   - Go to your repository **Settings** -> **Pages**.
+   - Under **Build and deployment** -> **Source**, select **GitHub Actions**.
+   - Push your changes to the `main` branch to trigger the build and deployment.
 
 ## License
 

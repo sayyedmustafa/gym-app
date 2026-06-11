@@ -82,7 +82,7 @@ export function StaffPage() {
 
   function copyInvite() {
     if (!activeInvite) return
-    const link = `${window.location.origin}/onboarding?code=${activeInvite.code}`
+    const link = `${window.location.origin}${import.meta.env.BASE_URL}onboarding?code=${activeInvite.code}`
     navigator.clipboard.writeText(link)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
