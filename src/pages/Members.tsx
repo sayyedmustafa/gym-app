@@ -154,9 +154,14 @@ export function MembersPage() {
                   <AvatarFallback>{member.name.slice(0, 2).toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-medium truncate">{member.name}</p>
                     <StatusBadge status={member.status} />
+                    {member.balance_amount !== undefined && member.balance_amount > 0 && (
+                      <span className="text-xs font-semibold text-warning bg-warning/10 px-2 py-0.5 rounded-full border border-warning/20">
+                        Pending: ₹{member.balance_amount}
+                      </span>
+                    )}
                   </div>
                   <p className="text-sm text-muted-foreground">
                     {member.plan?.name ?? 'No plan'} · Ends {member.end_date}

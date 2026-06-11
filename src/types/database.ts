@@ -70,6 +70,9 @@ export interface Member {
   notes: string | null
   created_by: string
   created_at: string
+  discount_amount?: number
+  paid_amount?: number
+  balance_amount?: number
 }
 
 export interface MemberWithStatus extends Member {

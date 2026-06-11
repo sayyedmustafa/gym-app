@@ -20,6 +20,9 @@ const memberSchema = z.object({
   plan_id: z.string().min(1, 'Select a plan'),
   start_date: z.string().min(1, 'Select a start date'),
   notes: z.string().optional(),
+  discount_amount: z.string().or(z.number()).optional(),
+  paid_amount: z.string().or(z.number()).optional(),
+  payment_method: z.enum(['cash', 'card', 'upi', 'other']).optional(),
 })
 
 type MemberFormData = z.infer<typeof memberSchema>
@@ -52,15 +55,25 @@ export function AddMemberDialog({ open, onClose, plans, onSuccess }: AddMemberDi
     resolver: zodResolver(memberSchema),
     defaultValues: {
       start_date: format(new Date(), 'yyyy-MM-dd'),
+      discount_amount: 0,
+      payment_method: 'cash',
     },
   })
 
   const selectedPlanId = watch('plan_id')
   const startDate = watch('start_date')
+  const discountAmount = Number(watch('discount_amount') || 0)
+  const paidAmountInput = watch('paid_amount')
+
   const selectedPlan = plans.find((p) => p.id === selectedPlanId)
   const endDate = selectedPlan && startDate
     ? format(addDays(new Date(startDate), selectedPlan.duration_days), 'yyyy-MM-dd')
     : ''
+
+  const planPrice = selectedPlan ? selectedPlan.price : 0
+  const finalPrice = Math.max(0, planPrice - discountAmount)
+  const actualPaidAmount = paidAmountInput !== undefined && paidAmountInput !== '' ? Number(paidAmountInput) : finalPrice
+  const balanceAmount = Math.max(0, finalPrice - actualPaidAmount)
 
   function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -128,6 +141,24 @@ export function AddMemberDialog({ open, onClose, plans, onSuccess }: AddMemberDi
       ? format(addDays(new Date(data.start_date), plan.duration_days), 'yyyy-MM-dd')
       : data.start_date
 
+    const planPrice = plan ? plan.price : 0
+    const discount = Number(data.discount_amount || 0)
+    const finalPrice = Math.max(0, planPrice - discount)
+    const paid = data.paid_amount !== undefined && data.paid_amount !== '' ? Number(data.paid_amount) : finalPrice
+
+    if (discount > planPrice) {
+      setLoading(false)
+      toast.error('Discount cannot exceed plan price')
+      return
+    }
+    if (paid > finalPrice) {
+      setLoading(false)
+      toast.error('Amount paid cannot exceed final price')
+      return
+    }
+
+    const balance = Math.max(0, finalPrice - paid)
+
     const { data: inserted, error } = await supabase.from('members').insert({
       gym_id: currentGymId,
       name: data.name,
@@ -137,12 +168,34 @@ export function AddMemberDialog({ open, onClose, plans, onSuccess }: AddMemberDi
       end_date: computedEndDate,
       notes: data.notes || null,
       created_by: session.user.id,
+      discount_amount: discount,
+      paid_amount: paid,
+      balance_amount: balance,
     }).select('id').single()
 
     if (error) {
       setLoading(false)
       toast.error('Failed to add member', { description: error.message })
       return
+    }
+
+    // Record payment if any amount was paid
+    if (inserted && paid > 0) {
+      const { error: paymentError } = await supabase.from('payments').insert({
+        gym_id: currentGymId,
+        member_id: inserted.id,
+        plan_id: data.plan_id,
+        amount: paid,
+        method: data.payment_method || 'cash',
+        paid_on: data.start_date,
+        extends_to: computedEndDate,
+        created_by: session.user.id,
+      })
+
+      if (paymentError) {
+        console.error('Failed to log payment:', paymentError)
+        toast.warning('Member added, but failed to log payment record.')
+      }
     }
 
     // Upload photo if selected
@@ -263,6 +316,78 @@ export function AddMemberDialog({ open, onClose, plans, onSuccess }: AddMemberDi
             {selectedPlan && (
               <span className="text-muted-foreground"> ({selectedPlan.duration_days} days)</span>
             )}
+          </div>
+        )}
+
+        {selectedPlan && (
+          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-4 space-y-4">
+            <h3 className="font-semibold text-sm leading-none tracking-tight">Payment Summary</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="discount_amount">Discount (₹)</Label>
+                <Input
+                  id="discount_amount"
+                  type="number"
+                  placeholder="0"
+                  {...register('discount_amount')}
+                />
+                {errors.discount_amount && (
+                  <p className="text-xs text-destructive">{errors.discount_amount.message}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="paid_amount">Amount Paid (₹)</Label>
+                <Input
+                  id="paid_amount"
+                  type="number"
+                  placeholder={finalPrice.toString()}
+                  {...register('paid_amount')}
+                />
+                {errors.paid_amount && (
+                  <p className="text-xs text-destructive">{errors.paid_amount.message}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="payment_method">Payment Method</Label>
+              <Select id="payment_method" {...register('payment_method')}>
+                <option value="cash">Cash</option>
+                <option value="card">Card</option>
+                <option value="upi">UPI</option>
+                <option value="other">Other</option>
+              </Select>
+              {errors.payment_method && (
+                <p className="text-xs text-destructive">{errors.payment_method.message}</p>
+              )}
+            </div>
+
+            <div className="text-xs space-y-1.5 border-t pt-3">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Plan Base Price:</span>
+                <span>₹{planPrice}</span>
+              </div>
+              {discountAmount > 0 && (
+                <div className="flex justify-between text-destructive">
+                  <span>Discount:</span>
+                  <span>-₹{discountAmount}</span>
+                </div>
+              )}
+              <div className="flex justify-between font-medium">
+                <span>Final Price:</span>
+                <span>₹{finalPrice}</span>
+              </div>
+              <div className="flex justify-between text-success">
+                <span>Paid Amount:</span>
+                <span>₹{actualPaidAmount}</span>
+              </div>
+              {balanceAmount > 0 && (
+                <div className="flex justify-between text-amber-600 font-semibold border-t border-dashed pt-1.5 mt-1.5">
+                  <span>Pending Balance:</span>
+                  <span>₹{balanceAmount}</span>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
