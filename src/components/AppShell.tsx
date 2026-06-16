@@ -8,6 +8,7 @@ import {
   LogOut,
   ChevronDown,
   Dumbbell,
+  PlusCircle,
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth'
 import { supabase } from '@/lib/supabase'
@@ -41,7 +42,7 @@ export function AppShell() {
         <div className="border-b p-4">
           <div className="flex items-center gap-2">
             {currentGym?.logo_url ? (
-              <img src={currentGym.logo_url} alt="Logo" className="h-5 w-5 rounded object-cover" />
+              <img src={currentGym.logo_url} alt="Logo" className="h-8 w-8 rounded object-cover" />
             ) : (
               <Dumbbell className="h-5 w-5 text-primary" />
             )}
@@ -85,6 +86,14 @@ export function AppShell() {
                 {item.label}
               </NavLink>
             ))}
+
+          <NavLink
+            to="/onboarding"
+            className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+          >
+            <PlusCircle className="h-4 w-4" />
+            Add / Join Gym
+          </NavLink>
         </nav>
 
         {/* User footer */}
@@ -111,7 +120,7 @@ export function AppShell() {
         <header className="flex items-center justify-between border-b p-4 md:hidden">
           <div className="flex items-center gap-2">
             {currentGym?.logo_url ? (
-              <img src={currentGym.logo_url} alt="Logo" className="h-5 w-5 rounded object-cover" />
+              <img src={currentGym.logo_url} alt="Logo" className="h-8 w-8 rounded object-cover" />
             ) : (
               <Dumbbell className="h-5 w-5 text-primary" />
             )}

@@ -165,7 +165,23 @@ export function StaffPage() {
                   <p className="text-sm text-muted-foreground">{member.profile.email}</p>
                 </div>
                 {member.role === 'staff' && (
-                  <Button variant="outline" size="sm">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      const { error } = await supabase
+                        .from('gym_members')
+                        .update({ role: 'owner' })
+                        .eq('gym_id', currentGymId!)
+                        .eq('user_id', member.user_id)
+                      if (error) {
+                        toast.error('Failed to promote', { description: error.message })
+                      } else {
+                        toast.success(`${member.profile.full_name} is now an Owner!`)
+                        queryClient.invalidateQueries({ queryKey: ['staff', currentGymId] })
+                      }
+                    }}
+                  >
                     Promote to Owner
                   </Button>
                 )}
