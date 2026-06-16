@@ -7,9 +7,11 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { StatusBadge } from '@/components/StatusBadge'
 import { AddMemberDialog } from '@/components/AddMemberDialog'
+import { EditMemberDialog } from '@/components/EditMemberDialog'
+import { ImageLightbox } from '@/components/ImageLightbox'
 import { useAuthStore } from '@/stores/auth'
 import { supabase } from '@/lib/supabase'
-import { openWhatsApp, buildReminderMessage } from '@/lib/whatsapp'
+import { openWhatsApp, buildReminderMessage, buildWhatsAppUrl } from '@/lib/whatsapp'
 import { differenceInDays } from 'date-fns'
 import type { MemberWithStatus, MemberStatus, Plan } from '@/types/database'
 
@@ -32,6 +34,8 @@ export function MembersPage() {
   const [activeTab, setActiveTab] = useState<MemberStatus | 'all'>('all')
   const [search, setSearch] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [editMember, setEditMember] = useState<MemberWithStatus | null>(null)
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
   const currentGymId = useAuthStore((s) => s.currentGymId)
   const currentGym = useAuthStore((s) => s.currentGym)
 
@@ -73,17 +77,31 @@ export function MembersPage() {
 
   function handleBulkWhatsApp() {
     const gymName = currentGym()?.name ?? 'our gym'
-    expiringMembers.forEach((m, i) => {
-      setTimeout(() => {
-        const msg = buildReminderMessage(m.name, gymName, m.end_date)
-        openWhatsApp(m.phone, msg)
-      }, i * 500) // stagger to avoid popup blocking
+    // Build all wa.me URLs
+    const urls = expiringMembers.map((m) => {
+      const msg = buildReminderMessage(m.name, gymName, m.end_date, m.status as 'expiring_soon' | 'expired')
+      return buildWhatsAppUrl(m.phone, msg)
     })
+    // Open first immediately, then each time user returns to the page open next
+    if (urls.length === 0) return
+    window.open(urls[0], '_blank')
+    if (urls.length > 1) {
+      let idx = 1
+      const onFocus = () => {
+        if (idx < urls.length) {
+          window.open(urls[idx], '_blank')
+          idx++
+        } else {
+          window.removeEventListener('focus', onFocus)
+        }
+      }
+      window.addEventListener('focus', onFocus)
+    }
   }
 
   function handleSingleWhatsApp(member: MemberWithStatus) {
     const gymName = currentGym()?.name ?? 'our gym'
-    const msg = buildReminderMessage(member.name, gymName, member.end_date)
+    const msg = buildReminderMessage(member.name, gymName, member.end_date, member.status as 'expiring_soon' | 'expired')
     openWhatsApp(member.phone, msg)
   }
 
@@ -147,9 +165,15 @@ export function MembersPage() {
           </Card>
         ) : (
           filtered.map((member) => (
-            <Card key={member.id}>
+            <Card key={member.id} className="cursor-pointer hover:border-primary/50 transition" onClick={() => setEditMember(member)}>
               <CardContent className="flex items-center gap-4 p-4">
-                <Avatar>
+                <Avatar
+                  className="cursor-pointer hover:ring-2 hover:ring-primary transition"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (member.photo_url) setLightboxSrc(member.photo_url)
+                  }}
+                >
                   <AvatarImage src={member.photo_url ?? undefined} />
                   <AvatarFallback>{member.name.slice(0, 2).toUpperCase()}</AvatarFallback>
                 </Avatar>
@@ -172,7 +196,7 @@ export function MembersPage() {
                     variant="ghost"
                     size="icon"
                     title="Call"
-                    onClick={() => window.open(`tel:${member.phone}`)}
+                    onClick={(e) => { e.stopPropagation(); window.open(`tel:${member.phone}`) }}
                   >
                     <Phone className="h-4 w-4" />
                   </Button>
@@ -180,7 +204,7 @@ export function MembersPage() {
                     variant="ghost"
                     size="icon"
                     title="WhatsApp reminder"
-                    onClick={() => handleSingleWhatsApp(member)}
+                    onClick={(e) => { e.stopPropagation(); handleSingleWhatsApp(member) }}
                   >
                     <MessageCircle className="h-4 w-4" />
                   </Button>
@@ -197,6 +221,20 @@ export function MembersPage() {
         plans={plans}
         onSuccess={() => refetchMembers()}
       />
+
+      {editMember && (
+        <EditMemberDialog
+          open={!!editMember}
+          onClose={() => setEditMember(null)}
+          member={editMember}
+          plans={plans}
+          onSuccess={() => refetchMembers()}
+        />
+      )}
+
+      {lightboxSrc && (
+        <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
+      )}
     </div>
   )
 }

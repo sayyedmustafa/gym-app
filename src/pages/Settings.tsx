@@ -6,8 +6,17 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Dialog, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
-import { Upload, X, Dumbbell } from 'lucide-react'
+import { Upload, X, Dumbbell, RotateCcw } from 'lucide-react'
+import {
+  getExpiringTemplate,
+  getExpiredTemplate,
+  setExpiringTemplate,
+  setExpiredTemplate,
+  getDefaultExpiringTemplate,
+  getDefaultExpiredTemplate,
+} from '@/lib/whatsapp'
 
 export function SettingsPage() {
   const { profile, currentGym, isOwner, session, currentGymId, setGyms, gyms } = useAuthStore()
@@ -27,6 +36,9 @@ export function SettingsPage() {
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [logoRemoved, setLogoRemoved] = useState(false)
   const logoInputRef = useRef<HTMLInputElement>(null)
+
+  const [expiringTpl, setExpiringTpl] = useState(getExpiringTemplate)
+  const [expiredTpl, setExpiredTpl] = useState(getExpiredTemplate)
 
   useEffect(() => {
     if (gym) {
@@ -273,6 +285,60 @@ export function SettingsPage() {
             <Button onClick={handleSaveGymDetails} disabled={savingGym}>
               {savingGym ? 'Saving...' : 'Save Changes'}
             </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* WhatsApp Message Templates (owner only) */}
+      {isOwner() && (
+        <Card>
+          <CardHeader>
+            <CardTitle>WhatsApp Message Templates</CardTitle>
+            <CardDescription>
+              Customize reminder messages. Use placeholders: <code className="text-xs bg-muted px-1 rounded">{'{name}'}</code> <code className="text-xs bg-muted px-1 rounded">{'{gymName}'}</code> <code className="text-xs bg-muted px-1 rounded">{'{endDate}'}</code>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Expiring Plan Message</Label>
+              <textarea
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                value={expiringTpl}
+                onChange={(e) => setExpiringTpl(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Expired Plan Message</Label>
+              <textarea
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                value={expiredTpl}
+                onChange={(e) => setExpiredTpl(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => {
+                  setExpiringTemplate(expiringTpl)
+                  setExpiredTemplate(expiredTpl)
+                  toast.success('Message templates saved!')
+                }}
+              >
+                Save Templates
+              </Button>
+              <Button
+                variant="outline"
+                className="gap-1"
+                onClick={() => {
+                  setExpiringTpl(getDefaultExpiringTemplate())
+                  setExpiredTpl(getDefaultExpiredTemplate())
+                  setExpiringTemplate(getDefaultExpiringTemplate())
+                  setExpiredTemplate(getDefaultExpiredTemplate())
+                  toast.success('Templates reset to default')
+                }}
+              >
+                <RotateCcw className="h-3.5 w-3.5" /> Reset
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
