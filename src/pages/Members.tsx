@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Search, UserPlus, Phone, MessageCircle, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -9,9 +10,10 @@ import { StatusBadge } from '@/components/StatusBadge'
 import { AddMemberDialog } from '@/components/AddMemberDialog'
 import { EditMemberDialog } from '@/components/EditMemberDialog'
 import { ImageLightbox } from '@/components/ImageLightbox'
+import { BulkReminderDialog } from '@/components/BulkReminderDialog'
 import { useAuthStore } from '@/stores/auth'
 import { supabase } from '@/lib/supabase'
-import { openWhatsApp, buildReminderMessage, buildWhatsAppUrl } from '@/lib/whatsapp'
+import { openWhatsApp, buildReminderMessage } from '@/lib/whatsapp'
 import { differenceInDays } from 'date-fns'
 import type { MemberWithStatus, MemberStatus, Plan } from '@/types/database'
 
@@ -31,13 +33,26 @@ function computeStatus(endDate: string): MemberStatus {
 }
 
 export function MembersPage() {
-  const [activeTab, setActiveTab] = useState<MemberStatus | 'all'>('all')
+  const [searchParams] = useSearchParams()
+  const [activeTab, setActiveTab] = useState<MemberStatus | 'all'>(() => {
+    const s = searchParams.get('status') as MemberStatus | null
+    return s && ['active', 'expiring_soon', 'expired', 'frozen'].includes(s) ? s : 'all'
+  })
   const [search, setSearch] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editMember, setEditMember] = useState<MemberWithStatus | null>(null)
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
+  const [bulkOpen, setBulkOpen] = useState(false)
   const currentGymId = useAuthStore((s) => s.currentGymId)
   const currentGym = useAuthStore((s) => s.currentGym)
+
+  // Keep tab in sync if URL changes (e.g. nav from dashboard banner while page already mounted)
+  useEffect(() => {
+    const s = searchParams.get('status') as MemberStatus | null
+    if (s && ['active', 'expiring_soon', 'expired', 'frozen'].includes(s)) {
+      setActiveTab(s)
+    }
+  }, [searchParams])
 
   const { data: plans = [] } = useQuery<Plan[]>({
     queryKey: ['plans', currentGymId],
@@ -75,30 +90,6 @@ export function MembersPage() {
 
   const expiringMembers = members.filter((m) => m.status === 'expiring_soon' || m.status === 'expired')
 
-  function handleBulkWhatsApp() {
-    const gymName = currentGym()?.name ?? 'our gym'
-    // Build all wa.me URLs
-    const urls = expiringMembers.map((m) => {
-      const msg = buildReminderMessage(m.name, gymName, m.end_date, m.status as 'expiring_soon' | 'expired')
-      return buildWhatsAppUrl(m.phone, msg)
-    })
-    // Open first immediately, then each time user returns to the page open next
-    if (urls.length === 0) return
-    window.open(urls[0], '_blank')
-    if (urls.length > 1) {
-      let idx = 1
-      const onFocus = () => {
-        if (idx < urls.length) {
-          window.open(urls[idx], '_blank')
-          idx++
-        } else {
-          window.removeEventListener('focus', onFocus)
-        }
-      }
-      window.addEventListener('focus', onFocus)
-    }
-  }
-
   function handleSingleWhatsApp(member: MemberWithStatus) {
     const gymName = currentGym()?.name ?? 'our gym'
     const msg = buildReminderMessage(member.name, gymName, member.end_date, member.status as 'expiring_soon' | 'expired')
@@ -114,7 +105,7 @@ export function MembersPage() {
         </div>
         <div className="flex gap-2">
           {expiringMembers.length > 0 && (
-            <Button variant="outline" onClick={handleBulkWhatsApp} className="gap-2">
+            <Button variant="outline" onClick={() => setBulkOpen(true)} className="gap-2">
               <MessageCircle className="h-4 w-4" />
               Remind All ({expiringMembers.length})
             </Button>
@@ -228,13 +219,24 @@ export function MembersPage() {
           onClose={() => setEditMember(null)}
           member={editMember}
           plans={plans}
-          onSuccess={() => refetchMembers()}
+          onSuccess={async () => {
+            const { data: fresh } = await refetchMembers()
+            const updated = fresh?.find((m) => m.id === editMember.id) ?? null
+            setEditMember(updated)
+          }}
         />
       )}
 
       {lightboxSrc && (
         <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
       )}
+
+      <BulkReminderDialog
+        open={bulkOpen}
+        onClose={() => setBulkOpen(false)}
+        members={expiringMembers}
+        gymName={currentGym()?.name ?? 'our gym'}
+      />
     </div>
   )
 }

@@ -6,9 +6,7 @@ import {
   UserCog,
   Settings,
   LogOut,
-  ChevronDown,
   Dumbbell,
-  PlusCircle,
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth'
 import { supabase } from '@/lib/supabase'
@@ -40,11 +38,11 @@ export function AppShell() {
       <aside className="hidden w-64 flex-col border-r bg-card md:flex">
         {/* Gym switcher */}
         <div className="border-b p-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {currentGym?.logo_url ? (
-              <img src={currentGym.logo_url} alt="Logo" className="h-8 w-8 rounded object-cover" />
+              <img src={currentGym.logo_url} alt="Logo" className="h-10 w-10 rounded object-cover" />
             ) : (
-              <Dumbbell className="h-5 w-5 text-primary" />
+              <Dumbbell className="h-7 w-7 text-primary" />
             )}
             {gyms.length <= 1 ? (
               <span className="font-semibold truncate">{currentGym?.name ?? 'My Gym'}</span>
@@ -61,7 +59,6 @@ export function AppShell() {
                 ))}
               </select>
             )}
-            {gyms.length > 1 && <ChevronDown className="h-4 w-4 text-muted-foreground" />}
           </div>
         </div>
 
@@ -86,14 +83,6 @@ export function AppShell() {
                 {item.label}
               </NavLink>
             ))}
-
-          <NavLink
-            to="/onboarding"
-            className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-          >
-            <PlusCircle className="h-4 w-4" />
-            Add / Join Gym
-          </NavLink>
         </nav>
 
         {/* User footer */}
@@ -118,11 +107,11 @@ export function AppShell() {
       <main className="flex-1 overflow-auto pb-16 md:pb-0">
         {/* Mobile header */}
         <header className="flex items-center justify-between border-b p-4 md:hidden">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {currentGym?.logo_url ? (
-              <img src={currentGym.logo_url} alt="Logo" className="h-8 w-8 rounded object-cover" />
+              <img src={currentGym.logo_url} alt="Logo" className="h-10 w-10 rounded object-cover" />
             ) : (
-              <Dumbbell className="h-5 w-5 text-primary" />
+              <Dumbbell className="h-7 w-7 text-primary" />
             )}
             <span className="font-semibold">{currentGym?.name ?? 'My Gym'}</span>
           </div>
