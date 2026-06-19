@@ -2,17 +2,20 @@ import { useState, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Camera, Upload, X, Video } from 'lucide-react'
+import { Camera, Upload, X, Video, Plus } from 'lucide-react'
 import { Dialog, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { ImageLightbox } from '@/components/ImageLightbox'
+import { PaymentHistoryList } from '@/components/PaymentHistoryList'
+import { RecordPaymentDialog } from '@/components/RecordPaymentDialog'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/auth'
 import { toast } from 'sonner'
 import { addDays, format } from 'date-fns'
+import { formatINR } from '@/lib/utils'
 import type { MemberWithStatus, Plan } from '@/types/database'
 
 const editSchema = z.object({
@@ -39,6 +42,7 @@ export function EditMemberDialog({ open, onClose, member, plans, onSuccess }: Ed
   const [photoPreview, setPhotoPreview] = useState<string | null>(member.photo_url)
   const [cameraActive, setCameraActive] = useState(false)
   const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [recordPaymentOpen, setRecordPaymentOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -280,6 +284,28 @@ export function EditMemberDialog({ open, onClose, member, plans, onSuccess }: Ed
             <Input id="edit-notes" {...register('notes')} />
           </div>
 
+          {/* Payment history */}
+          <div className="space-y-2 border-t pt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Payment History</Label>
+                {member.balance_amount !== undefined && member.balance_amount > 0 && (
+                  <p className="text-xs text-warning">Pending balance: {formatINR(member.balance_amount)}</p>
+                )}
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="gap-1"
+                onClick={() => setRecordPaymentOpen(true)}
+              >
+                <Plus className="h-3.5 w-3.5" /> Record Payment
+              </Button>
+            </div>
+            <PaymentHistoryList member={member} />
+          </div>
+
           <div className="flex gap-2 pt-2">
             <Button type="button" variant="outline" onClick={handleClose} disabled={loading}>
               Cancel
@@ -294,6 +320,14 @@ export function EditMemberDialog({ open, onClose, member, plans, onSuccess }: Ed
       {lightboxOpen && photoPreview && (
         <ImageLightbox src={photoPreview} alt={member.name} onClose={() => setLightboxOpen(false)} />
       )}
+
+      <RecordPaymentDialog
+        open={recordPaymentOpen}
+        onClose={() => setRecordPaymentOpen(false)}
+        member={member}
+        plans={plans}
+        onSuccess={onSuccess}
+      />
     </>
   )
 }

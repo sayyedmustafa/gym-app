@@ -1,5 +1,7 @@
-import { Users, UserMinus, AlertTriangle, IndianRupee } from 'lucide-react'
+import { Users, UserMinus, AlertTriangle, IndianRupee, Wallet, ArrowRight } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/stores/auth'
 import { formatINR } from '@/lib/utils'
 import { useQuery } from '@tanstack/react-query'
@@ -19,7 +21,7 @@ function useDashboardStats(gymId: string) {
       firstOfMonth.setDate(1)
       const firstOfMonthStr = firstOfMonth.toISOString().split('T')[0]
 
-      const [activeRes, expiringRes, expiredRes, revenueRes] = await Promise.all([
+      const [activeRes, expiringRes, expiredRes, revenueRes, duesRes] = await Promise.all([
         // Active: end_date >= today
         supabase
           .from('members')
@@ -48,10 +50,22 @@ function useDashboardStats(gymId: string) {
           .select('amount')
           .eq('gym_id', gymId)
           .gte('paid_on', firstOfMonthStr),
+
+        // Outstanding dues across all members
+        supabase
+          .from('members')
+          .select('balance_amount')
+          .eq('gym_id', gymId)
+          .gt('balance_amount', 0),
       ])
 
       const revenue = (revenueRes.data ?? []).reduce(
         (sum, p) => sum + (p.amount ?? 0),
+        0
+      )
+
+      const outstandingDues = (duesRes.data ?? []).reduce(
+        (sum, m) => sum + (m.balance_amount ?? 0),
         0
       )
 
@@ -60,6 +74,7 @@ function useDashboardStats(gymId: string) {
         expiring: expiringRes.count ?? 0,
         expired: expiredRes.count ?? 0,
         revenue,
+        outstandingDues,
       }
     },
     enabled: !!gymId,
@@ -68,7 +83,8 @@ function useDashboardStats(gymId: string) {
 
 export function DashboardPage() {
   const isOwner = useAuthStore((s) => s.isOwner)
-  const gymId = useAuthStore((s) => s.gyms?.[0]?.id)
+  const gymId = useAuthStore((s) => s.currentGymId)
+  const navigate = useNavigate()
 
   const { data: stats, isLoading } = useDashboardStats(gymId ?? '')
 
@@ -101,6 +117,44 @@ export function DashboardPage() {
         <h1 className="text-3xl font-bold">Dashboard</h1>
         <p className="text-muted-foreground">Overview of your gym</p>
       </div>
+
+      {/* Expiry banner */}
+      {((stats?.expiring ?? 0) > 0 || (stats?.expired ?? 0) > 0) && (
+        <div
+          className={`flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between ${
+            (stats?.expired ?? 0) > 0
+              ? 'border-destructive/30 bg-destructive/10'
+              : 'border-warning/30 bg-warning/10'
+          }`}
+        >
+          <div className="flex items-start gap-3">
+            <AlertTriangle
+              className={`h-5 w-5 shrink-0 mt-0.5 ${
+                (stats?.expired ?? 0) > 0 ? 'text-destructive' : 'text-warning'
+              }`}
+            />
+            <div>
+              <p className="font-semibold">
+                {(stats?.expiring ?? 0) > 0 && `${stats?.expiring} expiring this week`}
+                {(stats?.expiring ?? 0) > 0 && (stats?.expired ?? 0) > 0 && ', '}
+                {(stats?.expired ?? 0) > 0 && `${stats?.expired} already expired`}
+              </p>
+              <p className="text-xs text-muted-foreground">Send WhatsApp reminders to encourage renewals.</p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            className="gap-1 self-start sm:self-auto"
+            onClick={() =>
+              navigate(
+                `/app/members?status=${(stats?.expired ?? 0) > 0 ? 'expired' : 'expiring_soon'}`
+              )
+            }
+          >
+            Send Reminders <ArrowRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
@@ -142,6 +196,19 @@ export function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{formatINR(stats?.revenue ?? 0)}</div>
+            </CardContent>
+          </Card>
+        )}
+
+        {isOwner() && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Outstanding Dues</CardTitle>
+              <Wallet className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatINR(stats?.outstandingDues ?? 0)}</div>
+              <p className="text-xs text-muted-foreground">Pending member balances</p>
             </CardContent>
           </Card>
         )}

@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Dialog, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
-import { Upload, X, Dumbbell, RotateCcw } from 'lucide-react'
+import { Upload, X, Dumbbell, RotateCcw, PlusCircle } from 'lucide-react'
 import {
   getExpiringTemplate,
   getExpiredTemplate,
@@ -342,6 +342,20 @@ export function SettingsPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Switch or Add Gym (everyone) */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Switch or Add Gym</CardTitle>
+          <CardDescription>Join another gym with an invite code or create a new one.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button variant="outline" className="gap-2" onClick={() => navigate('/onboarding?add=1')}>
+            <PlusCircle className="h-4 w-4" />
+            Add or Join Another Gym
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Profile */}
       <Card>

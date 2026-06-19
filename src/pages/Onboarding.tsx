@@ -21,12 +21,13 @@ export function OnboardingPage() {
   const [error, setError] = useState('')
 
   const { setGyms, setCurrentGymId, gyms, initialized } = useAuthStore()
+  const addMode = searchParams.get('add') === '1'
 
   useEffect(() => {
-    if (initialized && gyms.length > 0) {
+    if (initialized && gyms.length > 0 && !addMode) {
       navigate('/app', { replace: true })
     }
-  }, [initialized, gyms, navigate])
+  }, [initialized, gyms, navigate, addMode])
 
   async function handleCreateGym() {
     if (!gymName.trim()) return setError('Enter a gym name')
