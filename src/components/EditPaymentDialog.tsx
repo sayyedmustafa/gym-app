@@ -20,6 +20,7 @@ const schema = z.object({
 })
 
 type FormData = z.infer<typeof schema>
+type FormInput = z.input<typeof schema>
 
 interface Props {
   open: boolean
@@ -39,7 +40,7 @@ export function EditPaymentDialog({ open, onClose, payment, member, onSuccess }:
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<FormData>({
+  } = useForm<FormInput, unknown, FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
       amount: payment.amount,

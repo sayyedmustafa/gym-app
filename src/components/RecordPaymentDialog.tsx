@@ -28,6 +28,7 @@ const schema = z.object({
 })
 
 type FormData = z.infer<typeof schema>
+type FormInput = z.input<typeof schema>
 
 interface Props {
   open: boolean
@@ -52,7 +53,7 @@ export function RecordPaymentDialog({ open, onClose, member, plans, onSuccess }:
     reset,
     setValue,
     formState: { errors },
-  } = useForm<FormData>({
+  } = useForm<FormInput, unknown, FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
       is_renewal: false,
