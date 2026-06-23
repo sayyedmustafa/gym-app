@@ -92,8 +92,8 @@ export function StaffPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Staff & Owners</h1>
-          <p className="text-muted-foreground">Manage who has access to this gym</p>
+          <h1 className="text-2xl font-bold md:text-3xl">Staff & Owners</h1>
+          <p className="text-sm text-muted-foreground md:text-base">Manage who has access to this gym</p>
         </div>
       </div>
 

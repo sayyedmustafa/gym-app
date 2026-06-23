@@ -100,8 +100,8 @@ export function MembersPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Members</h1>
-          <p className="text-muted-foreground">{members.length} total members</p>
+          <h1 className="text-2xl font-bold md:text-3xl">Members</h1>
+          <p className="text-sm text-muted-foreground md:text-base">{members.length} total members</p>
         </div>
         <div className="flex gap-2">
           {expiringMembers.length > 0 && (

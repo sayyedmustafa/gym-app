@@ -92,10 +92,10 @@ export function DashboardPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">Overview of your gym</p>
+          <h1 className="text-2xl font-bold md:text-3xl">Dashboard</h1>
+          <p className="text-sm text-muted-foreground md:text-base">Overview of your gym</p>
         </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
           {[...Array(4)].map((_, i) => (
             <Card key={i}>
               <CardHeader className="pb-2">
@@ -114,8 +114,8 @@ export function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground">Overview of your gym</p>
+        <h1 className="text-2xl font-bold md:text-3xl">Dashboard</h1>
+        <p className="text-sm text-muted-foreground md:text-base">Overview of your gym</p>
       </div>
 
       {/* Expiry banner */}
@@ -156,46 +156,46 @@ export function DashboardPage() {
         </div>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Members</CardTitle>
+            <CardTitle className="text-xs font-medium md:text-sm">Active Members</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.active ?? 0}</div>
+            <div className="text-xl font-bold md:text-2xl">{stats?.active ?? 0}</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Expiring Soon</CardTitle>
+            <CardTitle className="text-xs font-medium md:text-sm">Expiring Soon</CardTitle>
             <AlertTriangle className="h-4 w-4 text-warning" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-warning">{stats?.expiring ?? 0}</div>
+            <div className="text-xl font-bold text-warning md:text-2xl">{stats?.expiring ?? 0}</div>
             <p className="text-xs text-muted-foreground">Within 7 days</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Expired</CardTitle>
+            <CardTitle className="text-xs font-medium md:text-sm">Expired</CardTitle>
             <UserMinus className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-destructive">{stats?.expired ?? 0}</div>
+            <div className="text-xl font-bold text-destructive md:text-2xl">{stats?.expired ?? 0}</div>
           </CardContent>
         </Card>
 
         {isOwner() && (
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Revenue (This Month)</CardTitle>
+              <CardTitle className="text-xs font-medium md:text-sm">Revenue (This Month)</CardTitle>
               <IndianRupee className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatINR(stats?.revenue ?? 0)}</div>
+              <div className="text-xl font-bold md:text-2xl">{formatINR(stats?.revenue ?? 0)}</div>
             </CardContent>
           </Card>
         )}
@@ -203,11 +203,11 @@ export function DashboardPage() {
         {isOwner() && (
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Outstanding Dues</CardTitle>
+              <CardTitle className="text-xs font-medium md:text-sm">Outstanding Dues</CardTitle>
               <Wallet className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatINR(stats?.outstandingDues ?? 0)}</div>
+              <div className="text-xl font-bold md:text-2xl">{formatINR(stats?.outstandingDues ?? 0)}</div>
               <p className="text-xs text-muted-foreground">Pending member balances</p>
             </CardContent>
           </Card>
