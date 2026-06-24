@@ -14,7 +14,7 @@ import { BulkReminderDialog } from '@/components/BulkReminderDialog'
 import { RecordPaymentDialog } from '@/components/RecordPaymentDialog'
 import { useAuthStore } from '@/stores/auth'
 import { supabase } from '@/lib/supabase'
-import { openWhatsApp, buildReminderMessage } from '@/lib/whatsapp'
+import { buildReminderMessage, buildWhatsAppUrl } from '@/lib/whatsapp'
 import { differenceInDays } from 'date-fns'
 import type { MemberWithStatus, MemberStatus, Plan } from '@/types/database'
 
@@ -92,10 +92,10 @@ export function MembersPage() {
 
   const expiringMembers = members.filter((m) => m.status === 'expiring_soon' || m.status === 'expired')
 
-  function handleSingleWhatsApp(member: MemberWithStatus) {
+  function buildSingleReminderUrl(member: MemberWithStatus): string {
     const gymName = currentGym()?.name ?? 'our gym'
     const msg = buildReminderMessage(member.name, gymName, member.end_date, member.status as 'expiring_soon' | 'expired')
-    openWhatsApp(member.phone, msg)
+    return buildWhatsAppUrl(member.phone, msg)
   }
 
   return (
@@ -193,14 +193,14 @@ export function MembersPage() {
                   >
                     <Phone className="h-4 w-4" />
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
+                  <a
+                    href={buildSingleReminderUrl(member)}
+                    onClick={(e) => e.stopPropagation()}
                     title="WhatsApp reminder"
-                    onClick={(e) => { e.stopPropagation(); handleSingleWhatsApp(member) }}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-md text-foreground hover:bg-accent transition"
                   >
                     <MessageCircle className="h-4 w-4" />
-                  </Button>
+                  </a>
                   <Button
                     variant="ghost"
                     size="icon"

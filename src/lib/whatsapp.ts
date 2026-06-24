@@ -58,8 +58,3 @@ export function buildReminderMessage(
     .replace('{gymName}', gymName)
     .replace('{endDate}', endDate)
 }
-
-export function openWhatsApp(phone: string, message: string): void {
-  const url = buildWhatsAppUrl(phone, message)
-  window.open(url, '_blank')
-}
