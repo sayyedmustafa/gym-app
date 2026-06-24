@@ -107,13 +107,27 @@ export function AppShell() {
       <main className="flex-1 overflow-auto pb-16 md:pb-0">
         {/* Mobile header */}
         <header className="flex items-center justify-between border-b p-4 md:hidden">
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
             {currentGym?.logo_url ? (
-              <img src={currentGym.logo_url} alt="Logo" className="h-10 w-10 rounded object-cover" />
+              <img src={currentGym.logo_url} alt="Logo" className="h-10 w-10 shrink-0 rounded object-cover" />
             ) : (
-              <Dumbbell className="h-7 w-7 text-primary" />
+              <Dumbbell className="h-7 w-7 shrink-0 text-primary" />
             )}
-            <span className="font-semibold">{currentGym?.name ?? 'My Gym'}</span>
+            {gyms.length <= 1 ? (
+              <span className="truncate font-semibold">{currentGym?.name ?? 'My Gym'}</span>
+            ) : (
+              <select
+                value={currentGymId ?? ''}
+                onChange={(e) => setCurrentGymId(e.target.value)}
+                className="min-w-0 flex-1 truncate bg-transparent font-semibold outline-none"
+              >
+                {gyms.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.name}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
           <Button variant="ghost" size="icon" onClick={handleSignOut}>
             <LogOut className="h-4 w-4" />

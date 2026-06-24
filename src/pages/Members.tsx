@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Search, UserPlus, Phone, MessageCircle, Users } from 'lucide-react'
+import { Search, UserPlus, Phone, MessageCircle, Users, Wallet } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -11,9 +11,10 @@ import { AddMemberDialog } from '@/components/AddMemberDialog'
 import { EditMemberDialog } from '@/components/EditMemberDialog'
 import { ImageLightbox } from '@/components/ImageLightbox'
 import { BulkReminderDialog } from '@/components/BulkReminderDialog'
+import { RecordPaymentDialog } from '@/components/RecordPaymentDialog'
 import { useAuthStore } from '@/stores/auth'
 import { supabase } from '@/lib/supabase'
-import { openWhatsApp, buildReminderMessage } from '@/lib/whatsapp'
+import { buildReminderMessage, buildWhatsAppUrl } from '@/lib/whatsapp'
 import { differenceInDays } from 'date-fns'
 import type { MemberWithStatus, MemberStatus, Plan } from '@/types/database'
 
@@ -43,6 +44,7 @@ export function MembersPage() {
   const [editMember, setEditMember] = useState<MemberWithStatus | null>(null)
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
   const [bulkOpen, setBulkOpen] = useState(false)
+  const [payMember, setPayMember] = useState<MemberWithStatus | null>(null)
   const currentGymId = useAuthStore((s) => s.currentGymId)
   const currentGym = useAuthStore((s) => s.currentGym)
 
@@ -90,18 +92,18 @@ export function MembersPage() {
 
   const expiringMembers = members.filter((m) => m.status === 'expiring_soon' || m.status === 'expired')
 
-  function handleSingleWhatsApp(member: MemberWithStatus) {
+  function buildSingleReminderUrl(member: MemberWithStatus): string {
     const gymName = currentGym()?.name ?? 'our gym'
     const msg = buildReminderMessage(member.name, gymName, member.end_date, member.status as 'expiring_soon' | 'expired')
-    openWhatsApp(member.phone, msg)
+    return buildWhatsAppUrl(member.phone, msg)
   }
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Members</h1>
-          <p className="text-muted-foreground">{members.length} total members</p>
+          <h1 className="text-2xl font-bold md:text-3xl">Members</h1>
+          <p className="text-sm text-muted-foreground md:text-base">{members.length} total members</p>
         </div>
         <div className="flex gap-2">
           {expiringMembers.length > 0 && (
@@ -191,13 +193,21 @@ export function MembersPage() {
                   >
                     <Phone className="h-4 w-4" />
                   </Button>
+                  <a
+                    href={buildSingleReminderUrl(member)}
+                    onClick={(e) => e.stopPropagation()}
+                    title="WhatsApp reminder"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-md text-foreground hover:bg-accent transition"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                  </a>
                   <Button
                     variant="ghost"
                     size="icon"
-                    title="WhatsApp reminder"
-                    onClick={(e) => { e.stopPropagation(); handleSingleWhatsApp(member) }}
+                    title="Record payment / renew"
+                    onClick={(e) => { e.stopPropagation(); setPayMember(member) }}
                   >
-                    <MessageCircle className="h-4 w-4" />
+                    <Wallet className="h-4 w-4" />
                   </Button>
                 </div>
               </CardContent>
@@ -237,6 +247,16 @@ export function MembersPage() {
         members={expiringMembers}
         gymName={currentGym()?.name ?? 'our gym'}
       />
+
+      {payMember && (
+        <RecordPaymentDialog
+          open={!!payMember}
+          onClose={() => setPayMember(null)}
+          member={payMember}
+          plans={plans}
+          onSuccess={() => refetchMembers()}
+        />
+      )}
     </div>
   )
 }

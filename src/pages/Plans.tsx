@@ -93,12 +93,12 @@ export function PlansPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Membership Plans</h1>
-          <p className="text-muted-foreground">Configure pricing and durations</p>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold md:text-3xl">Membership Plans</h1>
+          <p className="text-sm text-muted-foreground md:text-base">Configure pricing and durations</p>
         </div>
-        <Button className="gap-2" onClick={() => setDialogOpen(true)}>
+        <Button className="shrink-0 gap-2" onClick={() => setDialogOpen(true)}>
           <Plus className="h-4 w-4" />
           Add Plan
         </Button>

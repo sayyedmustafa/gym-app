@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Dialog, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { MessageCircle, SkipForward, CheckCircle2 } from 'lucide-react'
-import { buildReminderMessage, openWhatsApp } from '@/lib/whatsapp'
+import { buildReminderMessage, buildWhatsAppUrl } from '@/lib/whatsapp'
 import type { MemberWithStatus } from '@/types/database'
 
 interface Props {
@@ -54,7 +54,6 @@ export function BulkReminderDialog({ open, onClose, members, gymName }: Props) {
 
   function handleSend() {
     if (!current) return
-    openWhatsApp(current.phone, message)
     advance('sent')
   }
 
@@ -125,9 +124,13 @@ export function BulkReminderDialog({ open, onClose, members, gymName }: Props) {
             <Button variant="outline" className="flex-1 gap-1" onClick={handleSkip}>
               <SkipForward className="h-4 w-4" /> Skip
             </Button>
-            <Button className="flex-1 gap-1" onClick={handleSend}>
+            <a
+              href={current ? buildWhatsAppUrl(current.phone, message) : '#'}
+              onClick={handleSend}
+              className="inline-flex flex-1 items-center justify-center gap-1 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 transition"
+            >
               <MessageCircle className="h-4 w-4" /> Send WhatsApp
-            </Button>
+            </a>
           </div>
         </div>
       ) : (
