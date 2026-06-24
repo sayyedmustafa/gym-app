@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Search, UserPlus, Phone, MessageCircle, Users } from 'lucide-react'
+import { Search, UserPlus, Phone, MessageCircle, Users, Wallet } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -11,6 +11,7 @@ import { AddMemberDialog } from '@/components/AddMemberDialog'
 import { EditMemberDialog } from '@/components/EditMemberDialog'
 import { ImageLightbox } from '@/components/ImageLightbox'
 import { BulkReminderDialog } from '@/components/BulkReminderDialog'
+import { RecordPaymentDialog } from '@/components/RecordPaymentDialog'
 import { useAuthStore } from '@/stores/auth'
 import { supabase } from '@/lib/supabase'
 import { openWhatsApp, buildReminderMessage } from '@/lib/whatsapp'
@@ -43,6 +44,7 @@ export function MembersPage() {
   const [editMember, setEditMember] = useState<MemberWithStatus | null>(null)
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
   const [bulkOpen, setBulkOpen] = useState(false)
+  const [payMember, setPayMember] = useState<MemberWithStatus | null>(null)
   const currentGymId = useAuthStore((s) => s.currentGymId)
   const currentGym = useAuthStore((s) => s.currentGym)
 
@@ -199,6 +201,14 @@ export function MembersPage() {
                   >
                     <MessageCircle className="h-4 w-4" />
                   </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    title="Record payment / renew"
+                    onClick={(e) => { e.stopPropagation(); setPayMember(member) }}
+                  >
+                    <Wallet className="h-4 w-4" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -237,6 +247,16 @@ export function MembersPage() {
         members={expiringMembers}
         gymName={currentGym()?.name ?? 'our gym'}
       />
+
+      {payMember && (
+        <RecordPaymentDialog
+          open={!!payMember}
+          onClose={() => setPayMember(null)}
+          member={payMember}
+          plans={plans}
+          onSuccess={() => refetchMembers()}
+        />
+      )}
     </div>
   )
 }
