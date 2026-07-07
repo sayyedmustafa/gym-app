@@ -23,14 +23,16 @@ export function Dialog({ open, onClose, children }: DialogProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto py-4 sm:items-center sm:py-0">
       <div className="fixed inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative z-50 w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-lg border bg-card p-6 shadow-lg mx-4 my-auto">
+      <div className="relative z-50 flex max-h-[100dvh] w-full max-w-lg flex-col overflow-hidden rounded-lg border bg-card shadow-lg mx-4 my-auto sm:max-h-[85vh]">
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100"
+          className="absolute right-4 top-4 z-10 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100"
         >
           <X className="h-4 w-4" />
         </button>
-        {children}
+        <div className="overflow-y-auto overscroll-contain p-6">
+          {children}
+        </div>
       </div>
     </div>
   )
