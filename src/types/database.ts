@@ -21,6 +21,7 @@ export interface Gym {
   phone?: string | null
   email?: string | null
   logo_url?: string | null
+  created_by?: string | null
   created_at: string
 }
 

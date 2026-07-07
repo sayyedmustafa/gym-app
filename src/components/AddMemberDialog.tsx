@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -94,12 +94,20 @@ export function AddMemberDialog({ open, onClose, plans, onSuccess }: AddMemberDi
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
       streamRef.current = stream
-      if (videoRef.current) videoRef.current.srcObject = stream
       setCameraActive(true)
     } catch {
       toast.error('Could not access camera. Check browser permissions.')
     }
   }
+
+  // Attach the stream once the <video> element is actually mounted (after cameraActive flips true).
+  // Assigning srcObject before the element exists is why the camera sometimes didn't open.
+  useEffect(() => {
+    if (cameraActive && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current
+      videoRef.current.play().catch(() => {})
+    }
+  }, [cameraActive])
 
   function stopCamera() {
     streamRef.current?.getTracks().forEach((t) => t.stop())
@@ -109,6 +117,10 @@ export function AddMemberDialog({ open, onClose, plans, onSuccess }: AddMemberDi
 
   function capturePhoto() {
     if (!videoRef.current) return
+    if (!videoRef.current.videoWidth || !videoRef.current.videoHeight) {
+      toast.error('Camera is still starting — try again in a moment.')
+      return
+    }
     const canvas = document.createElement('canvas')
     canvas.width = videoRef.current.videoWidth
     canvas.height = videoRef.current.videoHeight

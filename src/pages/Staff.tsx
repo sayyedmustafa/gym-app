@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Copy, Check, UserPlus, Shield, ShieldCheck } from 'lucide-react'
+import { Copy, Check, UserPlus, Shield, ShieldCheck, Crown, UserX, ArrowDownToLine } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -24,6 +24,7 @@ function generateCode() {
 export function StaffPage() {
   const [copied, setCopied] = useState(false)
   const currentGymId = useAuthStore((s) => s.currentGymId)
+  const currentGym = useAuthStore((s) => s.currentGym())
   const session = useAuthStore((s) => s.session)
   const queryClient = useQueryClient()
 
@@ -79,6 +80,94 @@ export function StaffPage() {
       toast.error('Failed to generate invite', { description: err.message })
     },
   })
+
+  // Owner Prime = gym creator if known, else earliest owner by joined_at.
+  const ownerPrimeId = useMemo(() => {
+    const owners = staff.filter((m) => m.role === 'owner')
+    if (owners.length === 0) return null
+    const gymCreatedBy = (currentGym as { created_by?: string | null } | null)?.created_by
+    if (gymCreatedBy && owners.some((o) => o.user_id === gymCreatedBy)) return gymCreatedBy
+    return owners
+      .slice()
+      .sort((a, b) => new Date(a.joined_at).getTime() - new Date(b.joined_at).getTime())[0]?.user_id ?? null
+  }, [staff, currentGym])
+
+  const myMember = useMemo(
+    () => staff.find((m) => m.user_id === session?.user.id) ?? null,
+    [staff, session?.user.id]
+  )
+  const isCurrentUserOwner = myMember?.role === 'owner'
+  const isCurrentUserPrime = !!session?.user.id && session.user.id === ownerPrimeId
+
+  function isMemberPrime(member: StaffMember) {
+    return !!ownerPrimeId && member.user_id === ownerPrimeId
+  }
+
+  function canPromote(member: StaffMember) {
+    return isCurrentUserPrime && member.role === 'staff'
+  }
+
+  function canDemote(member: StaffMember) {
+    if (!isCurrentUserPrime) return false
+    if (member.role !== 'owner') return false
+    if (isMemberPrime(member)) return false
+    return true
+  }
+
+  function canKick(member: StaffMember) {
+    if (!isCurrentUserOwner) return false
+    if (isMemberPrime(member)) return false
+    if (member.role === 'staff') return true
+    if (member.role === 'owner') return isCurrentUserPrime && member.user_id !== session?.user.id
+    return false
+  }
+
+  async function handlePromote(member: StaffMember) {
+    if (!currentGymId) return toast.error('No gym selected')
+    if (!canPromote(member)) return toast.error('Only Owner Prime can promote staff to owner')
+    const { error } = await supabase
+      .from('gym_members')
+      .update({ role: 'owner' })
+      .eq('gym_id', currentGymId)
+      .eq('user_id', member.user_id)
+    if (error) return toast.error('Failed to promote', { description: error.message })
+    toast.success(`${member.profile.full_name} is now an Owner!`)
+    queryClient.invalidateQueries({ queryKey: ['staff', currentGymId] })
+  }
+
+  async function handleDemote(member: StaffMember) {
+    if (!currentGymId) return toast.error('No gym selected')
+    if (!canDemote(member)) return toast.error('Only Owner Prime can demote owners. Owner Prime cannot be demoted.')
+    const { error } = await supabase
+      .from('gym_members')
+      .update({ role: 'staff' })
+      .eq('gym_id', currentGymId)
+      .eq('user_id', member.user_id)
+    if (error) return toast.error('Failed to demote owner', { description: error.message })
+    toast.success(`${member.profile.full_name} is now Staff`)
+    queryClient.invalidateQueries({ queryKey: ['staff', currentGymId] })
+  }
+
+  async function handleKick(member: StaffMember) {
+    if (!currentGymId) return toast.error('No gym selected')
+    if (!canKick(member)) {
+      return toast.error(
+        member.role === 'owner'
+          ? 'Only Owner Prime can kick another owner. Owner Prime cannot be removed.'
+          : 'Only owners can kick staff members.'
+      )
+    }
+    const confirmed = window.confirm(`Remove ${member.profile.full_name} from this gym?`)
+    if (!confirmed) return
+    const { error } = await supabase
+      .from('gym_members')
+      .delete()
+      .eq('gym_id', currentGymId)
+      .eq('user_id', member.user_id)
+    if (error) return toast.error('Failed to remove member', { description: error.message })
+    toast.success(`${member.profile.full_name} has been removed`)
+    queryClient.invalidateQueries({ queryKey: ['staff', currentGymId] })
+  }
 
   function copyInvite() {
     if (!activeInvite) return
@@ -143,47 +232,55 @@ export function StaffPage() {
         ) : (
           staff.map((member) => (
             <Card key={member.user_id}>
-              <CardContent className="flex items-center gap-4 p-4">
-                <Avatar>
-                  <AvatarImage src={member.profile.avatar_url ?? undefined} />
-                  <AvatarFallback>{member.profile.full_name.slice(0, 2).toUpperCase()}</AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium truncate">
-                      {member.profile.full_name}
-                      {member.user_id === session?.user.id && ' (You)'}
-                    </p>
-                    <Badge variant={member.role === 'owner' ? 'default' : 'secondary'}>
-                      {member.role === 'owner' ? (
-                        <><ShieldCheck className="mr-1 h-3 w-3" />Owner</>
-                      ) : (
-                        <><Shield className="mr-1 h-3 w-3" />Staff</>
+              <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:gap-4">
+                <div className="flex items-center gap-4 min-w-0 flex-1">
+                  <Avatar>
+                    <AvatarImage src={member.profile.avatar_url ?? undefined} />
+                    <AvatarFallback>{member.profile.full_name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-medium truncate">
+                        {member.profile.full_name}
+                        {member.user_id === session?.user.id && ' (You)'}
+                      </p>
+                      <Badge variant={member.role === 'owner' ? 'default' : 'secondary'}>
+                        {member.role === 'owner' ? (
+                          <><ShieldCheck className="mr-1 h-3 w-3" />Owner</>
+                        ) : (
+                          <><Shield className="mr-1 h-3 w-3" />Staff</>
+                        )}
+                      </Badge>
+                      {isMemberPrime(member) && (
+                        <Badge variant="outline" className="border-amber-500 text-amber-600">
+                          <Crown className="mr-1 h-3 w-3" />Owner Prime
+                        </Badge>
                       )}
-                    </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground truncate">{member.profile.email}</p>
                   </div>
-                  <p className="text-sm text-muted-foreground">{member.profile.email}</p>
                 </div>
-                {member.role === 'staff' && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={async () => {
-                      const { error } = await supabase
-                        .from('gym_members')
-                        .update({ role: 'owner' })
-                        .eq('gym_id', currentGymId!)
-                        .eq('user_id', member.user_id)
-                      if (error) {
-                        toast.error('Failed to promote', { description: error.message })
-                      } else {
-                        toast.success(`${member.profile.full_name} is now an Owner!`)
-                        queryClient.invalidateQueries({ queryKey: ['staff', currentGymId] })
-                      }
-                    }}
-                  >
-                    Promote to Owner
-                  </Button>
+                {(canPromote(member) || canDemote(member) || canKick(member)) && (
+                  <div className="flex flex-wrap gap-2 sm:justify-end">
+                    {canPromote(member) && (
+                      <Button variant="outline" size="sm" className="gap-1" onClick={() => handlePromote(member)}>
+                        <ShieldCheck className="h-4 w-4" />
+                        Promote to Owner
+                      </Button>
+                    )}
+                    {canDemote(member) && (
+                      <Button variant="outline" size="sm" className="gap-1" onClick={() => handleDemote(member)}>
+                        <ArrowDownToLine className="h-4 w-4" />
+                        Demote to Staff
+                      </Button>
+                    )}
+                    {canKick(member) && (
+                      <Button variant="destructive" size="sm" className="gap-1" onClick={() => handleKick(member)}>
+                        <UserX className="h-4 w-4" />
+                        Kick
+                      </Button>
+                    )}
+                  </div>
                 )}
               </CardContent>
             </Card>
